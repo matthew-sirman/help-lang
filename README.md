@@ -1,4 +1,4 @@
 # help-lang
-Highly Esoteric Language for Programming
+<b>Highly Esoteric Language for Programming</b>
 
 A simple (incomplete) functional programming language.
