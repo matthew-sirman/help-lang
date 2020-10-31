@@ -11,7 +11,7 @@
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
 typedef struct call_stack call_stack_t;
-typedef expr_t **call_stack_ptr;
+typedef expr_ptr_t *call_stack_ptr;
 typedef struct { size_t size, remaining; } working_set_t;
 
 struct call_stack {
@@ -43,11 +43,11 @@ size_t get_stack_frame_size(call_stack_t *stack);
 // Free the call stack
 void free_call_stack(call_stack_t *stack);
 
-// Increase the capacity on the stack
-static void increase_capacity(call_stack_t *stack, size_t new_capacity);
+// Update the capacity on the stack
+static void update_capacity(call_stack_t *stack, size_t new_capacity);
 
-// Decrease the capacity on the stack
-static void decrease_capacity(call_stack_t *stack, size_t new_capacity);
+//// Decrease the capacity on the stack
+//static void decrease_capacity(call_stack_t *stack, size_t new_capacity);
 
 // Double the capacity of the working set
 static void double_working_set_capacity(call_stack_t *stack);

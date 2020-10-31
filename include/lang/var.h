@@ -9,15 +9,20 @@
 
 #include "type.h"
 
+// Typedefs from other files
+typedef struct expr_manager expr_manager_t;
+
 typedef struct var var_t;
-typedef struct expr expr_t;
+typedef size_t var_ptr_t;
 
 struct var {
     char *name;
     size_t binding_index;
-    type_t *type;
+    type_ptr_t type;
 };
 
-void set_variable(var_t *var, const char *name, size_t name_length, type_t *type);
+var_ptr_t create_variable(expr_manager_t *manager);
+
+void set_variable(expr_manager_t *manager, var_ptr_t var, const char *name, size_t name_length, type_ptr_t type);
 
 #endif //FUNC_VAR_H

@@ -15,6 +15,8 @@
 
 typedef struct type type_t;
 typedef struct base_type base_type_t;
+typedef size_t type_ptr_t;
+typedef size_t base_type_ptr_t;
 typedef enum { /* POLYMORPHIC_TYPE, */ BASE_TYPE, FUNCTION_TYPE } type_mode_t;
 typedef void *value_t;
 typedef void (*print_method_t)(value_t *);
@@ -27,18 +29,18 @@ typedef void (*print_method_t)(value_t *);
 struct base_type {
     char *name;
     print_method_t print_method;
-    size_t base_type_id;
+//    size_t base_type_id;
 };
 
 struct type {
     type_mode_t mode;
     union {
-        base_type_t *base;
+        base_type_ptr_t base;
         struct {
-            type_t *from, *to;
+            type_ptr_t from, to;
         } function;
     } type;
-    size_t type_id;
+//    size_t type_id;
 };
 
 #endif //FUNCTIONAL_TYPE_H

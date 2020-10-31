@@ -18,13 +18,6 @@ typedef enum token { NONE = 0, FUNC, TYPE, ERROR } token_t;
 
 typedef enum parse_error { SUCCESS, INCOMPLETE_DECLARATION, MALFORMED_FUNC, MALFORMED_TYPE } parse_error_t;
 
-typedef struct arg_node *arg_list_t;
-
-struct arg_node {
-    char *arg_name;
-    arg_list_t tail;
-};
-
 //typedef struct type_comp_node *type_comp_list_t;
 
 //struct type_comp_node {
@@ -35,7 +28,7 @@ struct arg_node {
 // External functions
 
 // Parses source code and writes all functions to the context builder, and all expressions to the expression manager
-parse_error_t parse_source(const char *source, size_t length, context_builder_t *builder, expr_manager_t *expr_manager);
+parse_error_t parse_source(context_t *context, expr_manager_t *expr_manager, const char *source, size_t length);
 
 // Internal functions
 
@@ -44,17 +37,17 @@ parse_error_t parse_source(const char *source, size_t length, context_builder_t 
 static token_t extract_declaration(const char *s_begin, const char *s_end, const char **r_begin, const char **r_end);
 
 // Parse a single function
-static int parse_function(const char *f_begin, const char *f_end, context_builder_t *builder, expr_manager_t *expr_manager);
+static int parse_function(context_t *context, expr_manager_t *expr_manager, const char *f_begin, const char *f_end);
 
 // Parse an expression
-static expr_t *parse_function_expression(const char **e_begin, const char *e_end, context_builder_t *builder,
-                                         function_builder_t *f_builder, expr_manager_t *expr_manager);
+static expr_ptr_t parse_function_expression(context_t *context, function_builder_t *f_builder,
+                                            expr_manager_t *expr_manager, const char **e_begin, const char *e_end);
 
 // Parse a single term in an expression
-static expr_t *parse_function_term(const char **e_begin, const char *e_end, context_builder_t *builder,
-                                   function_builder_t *f_builder, expr_manager_t *expr_manager);
+static expr_ptr_t parse_function_term(context_t *context, function_builder_t *f_builder,
+                                      expr_manager_t *expr_manager, const char **e_begin, const char *e_end);
 
 // Parse a single type
-static int parse_type(const char *t_begin, const char *t_end, context_builder_t *builder);
+static int parse_type(context_t *context, const char *t_begin, const char *t_end);
 
 #endif //FUNCTIONAL_PARSER_H

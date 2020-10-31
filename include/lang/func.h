@@ -9,7 +9,6 @@
 #include <stdlib.h>
 
 #include "type.h"
-#include "expr.h"
 #include "constant.h"
 
 /* A lambda term takes a single expression as an argument,
@@ -18,54 +17,62 @@
  * */
 
 // Typedefs for other files
-typedef struct context_builder context_builder_t;
+typedef struct context context_t;
+typedef size_t var_ptr_t;
+typedef size_t expr_ptr_t;
 
 typedef struct lambda lambda_t;
-typedef struct lambda_node *lambda_list_t;
+typedef size_t lambda_ptr_t;
+//typedef struct lambda_node *lambda_list_t;
 typedef struct function_builder function_builder_t;
 typedef struct func func_t;
+typedef size_t func_ptr_t;
 
 struct lambda {
-    var_t var;
-    expr_t expr;
+    var_ptr_t var;
+    expr_ptr_t expr;
 };
 
-struct lambda_node {
-    lambda_t lambda;
-    lambda_list_t tail;
-};
+//struct lambda_node {
+//    lambda_t lambda;
+//    lambda_list_t tail;
+//};
 
 struct function_builder {
-    lambda_list_t lambdas;
+    lambda_ptr_t *lambdas;
     size_t n_lambdas;
+    size_t capacity;
 };
 
 struct func {
     char *name;
-    // Array of ordered lambda functions for this function (i.e. lx.ly.x would have the lambda with variable
-    // "x" followed by the lambda with variable "y" stored)
-    lambda_t *lambdas;
+//    // Array of ordered lambda functions for this function (i.e. lx.ly.x would have the lambda with variable
+//    // "x" followed by the lambda with variable "y" stored)
+//    lambda_t *lambdas;
     // The number of free variables associated with this function which will be equal to the number
     // of lambdas
     size_t n_free_variables;
 
     // A "function" type expression used for stack allocation
-    expr_t *func_expr;
+    expr_ptr_t func_expr;
     // Entry point for invoking this function
-    expr_t *entry_point;
+    expr_ptr_t entry_point;
 };
 
 function_builder_t *create_function_builder(void);
 
-lambda_t *builder_create_lambda(function_builder_t *builder);
+lambda_ptr_t builder_create_lambda(expr_manager_t *manager, function_builder_t *builder);
 
-func_t *compile_function(context_builder_t *c_builder, function_builder_t *builder, expr_manager_t *expr_manager,
-                         const char *function_name, size_t name_length);
+func_ptr_t compile_function(context_t *context, function_builder_t *builder, expr_manager_t *expr_manager,
+                            expr_ptr_t body, const char *function_name, size_t name_length);
 
-void update_expression_vars(expr_t *e, lambda_t *abstractions);
+var_ptr_t get_function_variable(expr_manager_t *expr_manager, function_builder_t *builder,
+                                const char *name, size_t name_length);
+
+//void update_expression_vars(expr_t *e, lambda_t *abstractions);
 
 void free_function_builder(function_builder_t *builder);
 
-void free_func(func_t *func);
+//void free_func(func_t *func);
 
 #endif //FUNCTIONAL_FUNC_H

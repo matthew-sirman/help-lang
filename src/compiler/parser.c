@@ -3,6 +3,7 @@
 //
 
 #include "../../include/util.h"
+#include "../../include/lang/expr.h"
 #include "../../include/compiler/parser.h"
 
 /* func constant: -> 5;
@@ -15,7 +16,7 @@
  *
  * */
 
-parse_error_t parse_source(const char *source, size_t length, context_builder_t *builder, expr_manager_t *expr_manager) {
+parse_error_t parse_source(context_t *context, expr_manager_t *expr_manager, const char *source, size_t length) {
     // All declarations are either a "type" or a "func". We also include a "NONE" token (e.g. for after the last
     // token is found, or if the file is empty) and an "ERROR" token (e.g. for an incomplete declaration)
 
@@ -30,12 +31,12 @@ parse_error_t parse_source(const char *source, size_t length, context_builder_t 
                 scanning = 0;
                 break;
             case FUNC:
-                if (parse_function(dec_begin, dec_end, builder, expr_manager)) {
+                if (parse_function(context, expr_manager, dec_begin, dec_end)) {
                     return MALFORMED_FUNC;
                 }
                 break;
             case TYPE:
-                if (parse_type(dec_begin, dec_end, builder)) {
+                if (parse_type(context, dec_begin, dec_end)) {
                     return MALFORMED_TYPE;
                 }
                 break;
@@ -78,7 +79,7 @@ token_t extract_declaration(const char *s_begin, const char *s_end, const char *
     return ERROR;
 }
 
-int parse_function(const char *f_begin, const char *f_end, context_builder_t *builder, expr_manager_t *expr_manager) {
+int parse_function(context_t *context, expr_manager_t *expr_manager, const char *f_begin, const char *f_end) {
     /* FORMAT:
      * func name: [arg1 arg2 ...] | _ -> expr;
      * */
@@ -130,14 +131,14 @@ int parse_function(const char *f_begin, const char *f_end, context_builder_t *bu
     function_builder_t *f_builder = create_function_builder();
 
     // Get a reference to the polymorphic type
-    type_t *poly_type = get_builder_type(builder, "poly", 4);
+    type_ptr_t poly_type = get_type_ptr(context, "poly", 4);
 
     // If the poly type does not yet exist, we must create it.
     if (!poly_type) {
-        poly_type = builder_create_base_type(builder, "poly", 4);
+        poly_type = context_create_base_type(context, "poly", 4);
     }
 
-    // First, we parse the arg list into a linked list for convenience
+    // First, we parse the arg list
     while (1) {
         // Skip over spaces
         while (*f_begin == ' ' && f_begin < f_end) {
@@ -169,11 +170,11 @@ int parse_function(const char *f_begin, const char *f_end, context_builder_t *bu
             return 1;
         } else {
             // Create the lambda function for this abstraction
-            lambda_t *lam = builder_create_lambda(f_builder);
+            lambda_ptr_t lam = builder_create_lambda(expr_manager, f_builder);
             // Set the variable name in the lambda
             size_t arg_name_length = f_begin - arg_name_begin;
             // Set the variable to the given name
-            set_variable(&lam->var, arg_name_begin, arg_name_length, poly_type);
+            set_variable(expr_manager, get_abstraction(expr_manager, lam)->var, arg_name_begin, arg_name_length, poly_type);
         }
     }
 
@@ -186,7 +187,7 @@ int parse_function(const char *f_begin, const char *f_end, context_builder_t *bu
     }
 
     // Next we parse the expression
-    expr_t *body_expr = parse_function_expression(&f_begin, f_end, builder, f_builder, expr_manager);
+    expr_ptr_t body_expr = parse_function_expression(context, f_builder, expr_manager, &f_begin, f_end);
 
     // If the expression failed to compile, return failure
     if (!body_expr) {
@@ -195,39 +196,39 @@ int parse_function(const char *f_begin, const char *f_end, context_builder_t *bu
         return 1;
     }
 
-    lambda_list_t lambda_node = f_builder->lambdas;
-
-    // TODO: This can probably be done without a copy
-    lambda_node->lambda.expr = *body_expr;
-
-    while (lambda_node) {
-        if (lambda_node->tail) {
-            set_expression_to_abstraction(builder, &lambda_node->tail->lambda.expr, &lambda_node->lambda);
-        }
-        lambda_node = lambda_node->tail;
-    }
+//    lambda_list_t lambda_node = f_builder->lambdas;
+//
+//    // TODO: This can probably be done without a copy
+//    lambda_node->lambda.expr = *body_expr;
+//
+//    while (lambda_node) {
+//        if (lambda_node->tail) {
+//            set_expression_to_abstraction(builder, &lambda_node->tail->lambda.expr, &lambda_node->lambda);
+//        }
+//        lambda_node = lambda_node->tail;
+//    }
 
     size_t name_length = name_end - name_begin;
-    compile_function(builder, f_builder, expr_manager, name_begin, name_length);
+    compile_function(context, f_builder, expr_manager, body_expr, name_begin, name_length);
 
     // Cleanup and return success
     free_function_builder(f_builder);
     return 0;
 }
 
-expr_t *parse_function_expression(const char **e_begin, const char *e_end, context_builder_t *builder,
-                                  function_builder_t *f_builder, expr_manager_t *expr_manager) {
+expr_ptr_t parse_function_expression(context_t *context, function_builder_t *f_builder,
+                                     expr_manager_t *expr_manager, const char **e_begin, const char *e_end) {
     // First, skip over any spaces
     while (**e_begin == ' ' && *e_begin < e_end) {
         (*e_begin)++;
     }
 
     // Extract the first term
-    expr_t *expr = parse_function_term(e_begin, e_end, builder, f_builder, expr_manager);
+    expr_ptr_t expr = parse_function_term(context, f_builder, expr_manager, e_begin, e_end);
 
     // Propagate any potential NULL
     if (!expr) {
-        return NULL;
+        return NULL_PTR;
     }
 
     // Skip over spaces
@@ -245,9 +246,9 @@ expr_t *parse_function_expression(const char **e_begin, const char *e_end, conte
     // While we still have terms
     while (**e_begin != ';' && **e_begin != ')') {
         // Parse the first applied term
-        expr_t *app_arg = parse_function_term(e_begin, e_end, builder, f_builder, expr_manager);
+        expr_ptr_t app_arg = parse_function_term(context, f_builder, expr_manager, e_begin, e_end);
         // Apply the term to the current application tree
-        expr = create_application_expression(expr_manager, expr, app_arg);
+        expr = create_application_expression(context, expr_manager, expr, app_arg);
         // Skip over any spaces
         while (**e_begin == ' ' && *e_begin < e_end) {
             (*e_begin)++;
@@ -257,15 +258,15 @@ expr_t *parse_function_expression(const char **e_begin, const char *e_end, conte
     return expr;
 }
 
-expr_t *parse_function_term(const char **e_begin, const char *e_end, context_builder_t *builder,
-                            function_builder_t  *f_builder, expr_manager_t *expr_manager) {
+expr_ptr_t parse_function_term(context_t *context, function_builder_t  *f_builder,
+                               expr_manager_t *expr_manager, const char **e_begin, const char *e_end) {
     // If the term starts with a parenthesis, it is a sub expression
     if (**e_begin == '(') {
         (*e_begin)++;
-        expr_t *sub_expr = parse_function_expression(e_begin, e_end, builder, f_builder, expr_manager);
+        expr_ptr_t sub_expr = parse_function_expression(context, f_builder, expr_manager, e_begin, e_end);
         if (**e_begin != ')') {
             fprintf(stderr, "Unmatched parenthesis detected.\n");
-            return NULL;
+            return NULL_PTR;
         }
         (*e_begin)++;
         return sub_expr;
@@ -283,13 +284,13 @@ expr_t *parse_function_term(const char **e_begin, const char *e_end, context_bui
             (*e_begin)++;
         }
 
-        type_t *number_type = get_builder_type(builder, "Number", 6);
+        type_ptr_t number_type = get_type_ptr(context, "Number", 6);
 
         if (!number_type) {
-            number_type = builder_create_base_type_with_print(builder, "Number", 6, &print_number_type);
+            number_type = context_create_base_type_with_print(context, "Number", 6, &print_number_type);
         }
 
-        constant_t *numeric_constant = create_constant((void *) c_val, number_type);
+        constant_ptr_t numeric_constant = create_constant(expr_manager, (void *) c_val, number_type);
         return create_constant_expression(expr_manager, numeric_constant);
     }
 
@@ -302,31 +303,41 @@ expr_t *parse_function_term(const char **e_begin, const char *e_end, context_bui
 
     // First we want to check if it is a variable in the function arguments - variables shadow functions
     // from the outer scope
-    lambda_list_t ll = f_builder->lambdas;
+//    lambda_list_t ll = f_builder->lambdas;
+//
+//    while (ll) {
+//        size_t lam_name_length = strlen(ll->lambda.var.name);
+//        // If the name matches a variable, create a variable expression and return
+//        if (name_length == lam_name_length && string_equal(ll->lambda.var.name, name_begin, name_length)) {
+//            return create_variable_expression(expr_manager, &ll->lambda.var);
+//        }
+//        ll = ll->tail;
+//    }
 
-    while (ll) {
-        size_t lam_name_length = strlen(ll->lambda.var.name);
-        // If the name matches a variable, create a variable expression and return
-        if (name_length == lam_name_length && string_equal(ll->lambda.var.name, name_begin, name_length)) {
-            return create_variable_expression(expr_manager, &ll->lambda.var);
-        }
-        ll = ll->tail;
+    var_ptr_t var = get_function_variable(expr_manager, f_builder, name_begin, name_length);
+    if (var) {
+        return create_variable_expression(expr_manager, var);
     }
 
     // If this fell through, we next want to check the function list in the context builder
 
-    func_list_t fl = builder->functions;
-
-    // TODO: Handle recursion - func_expr won't yet exist
-
-    while (fl) {
-        size_t func_name_length = strlen(fl->function.name);
-        // If the name matches, create an abstraction expression with the first lambda in the function
-        if (name_length == func_name_length && string_equal(fl->function.name, name_begin, name_length)) {
-            return fl->function.func_expr;
-        }
-        fl = fl->tail;
+    func_ptr_t func = context_find_function(context, name_begin, name_length);
+    if (func) {
+        return get_function(context, func)->func_expr;
     }
+
+//    func_list_t fl = builder->functions;
+//
+//    // TODO: Handle recursion - func_expr won't yet exist
+//
+//    while (fl) {
+//        size_t func_name_length = strlen(fl->function.name);
+//        // If the name matches, create an abstraction expression with the first lambda in the function
+//        if (name_length == func_name_length && string_equal(fl->function.name, name_begin, name_length)) {
+//            return fl->function.func_expr;
+//        }
+//        fl = fl->tail;
+//    }
 
     // If we failed to find a match, then return NULL and print out a linking error.
     char *unresolved = (char *) malloc(sizeof(char) * (name_length + 1));
@@ -334,10 +345,10 @@ expr_t *parse_function_term(const char **e_begin, const char *e_end, context_bui
     unresolved[name_length] = '\0';
     fprintf(stderr, "Failed to resolve symbol \"%s\"\n", unresolved);
     free(unresolved);
-    return NULL;
+    return NULL_PTR;
 }
 
-int parse_type(const char *t_begin, const char *t_end, context_builder_t *builder) {
+int parse_type(context_t *context, const char *t_begin, const char *t_end) {
     return 1;
 
 //    /* FORMAT:
