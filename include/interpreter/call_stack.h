@@ -32,13 +32,16 @@ void call_stack_push_frame(call_stack_t *stack, size_t frame_size);
 
 // Notify that a free variable in the current stack frame has completed. When all have completed,
 // the stack frame can be freed
-void call_stack_notify_pop(call_stack_t *stack);
+void call_stack_notify_pop(call_stack_t *stack, size_t frame);
 
 // Get the call stack pointer
 call_stack_ptr get_call_stack_ptr(call_stack_t *stack);
 
 // Get the size of the active stack frame
 size_t get_stack_frame_size(call_stack_t *stack);
+
+// Get the current stack frame
+size_t get_stack_frame(call_stack_t *stack);
 
 // Free the call stack
 void free_call_stack(call_stack_t *stack);
@@ -49,10 +52,10 @@ static void update_capacity(call_stack_t *stack, size_t new_capacity);
 //// Decrease the capacity on the stack
 //static void decrease_capacity(call_stack_t *stack, size_t new_capacity);
 
-// Double the capacity of the working set
-static void double_working_set_capacity(call_stack_t *stack);
+// Update the capacity of the working set
+static void update_working_set_capacity(call_stack_t *stack, size_t new_capacity);
 
-// Halve the capacity of the working set
-static void halve_working_set_capacity(call_stack_t *stack);
+//// Halve the capacity of the working set
+//static void halve_working_set_capacity(call_stack_t *stack);
 
 #endif //HELP_LANG_CALL_STACK_H

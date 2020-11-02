@@ -19,7 +19,9 @@ typedef size_t type_ptr_t;
 typedef size_t base_type_ptr_t;
 typedef enum { /* POLYMORPHIC_TYPE, */ BASE_TYPE, FUNCTION_TYPE } type_mode_t;
 typedef void *value_t;
-typedef void (*print_method_t)(value_t *);
+typedef void (*print_method_t)(value_t);
+
+typedef unsigned char bool;
 
 //struct type_component {
 //    char *name;

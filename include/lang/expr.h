@@ -88,6 +88,8 @@ expr_ptr_t create_builtin_expression(expr_manager_t *manager, type_ptr_t type, b
 
 void set_expression_to_abstraction(context_t *context, expr_manager_t *manager, expr_ptr_t expr, lambda_ptr_t lam);
 
+void set_expression_to_function(context_t *context, expr_manager_t *manager, expr_ptr_t expr, func_ptr_t func);
+
 void set_expression_to_application(context_t *context, expr_manager_t *manager, expr_ptr_t expr, expr_ptr_t func, expr_ptr_t arg);
 
 void set_expression_to_constant(expr_manager_t *manager, expr_ptr_t expr, constant_ptr_t c);

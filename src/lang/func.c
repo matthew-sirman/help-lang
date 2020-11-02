@@ -8,11 +8,13 @@
 #include "../../include/lang/context.h"
 #include "../../include/lang/func.h"
 
-function_builder_t *create_function_builder(void) {
+function_builder_t *create_function_builder(expr_manager_t *manager) {
     function_builder_t *builder = (function_builder_t *) malloc(sizeof(function_builder_t));
     builder->capacity = 1;
     builder->n_lambdas = 0;
     builder->lambdas = (lambda_ptr_t *) malloc(sizeof(lambda_ptr_t));
+    builder->placeholder_entry = create_expression(manager);
+    builder->placeholder_func = create_expression(manager);
     return builder;
 }
 
@@ -48,20 +50,18 @@ func_ptr_t compile_function(context_t *context, function_builder_t *builder, exp
 //    func->lambdas = (lambda_t *) malloc(sizeof(lambda_t) * builder->n_lambdas);
     p_func->n_free_variables = builder->n_lambdas;
 
-    lambda_ptr_t last_lambda = builder->lambdas[0];
-    lambda_t *p_last_lambda = get_abstraction(expr_manager, last_lambda);
-    get_variable(expr_manager, p_last_lambda->var)->binding_index = 0;
+//    lambda_ptr_t last_lambda = builder->lambdas[0];
+//    lambda_t *p_last_lambda = get_abstraction(expr_manager, last_lambda);
+//    get_variable(expr_manager, p_last_lambda->var)->binding_index = 0;
 
-    for (size_t i = 1; i < builder->n_lambdas; i++) {
+    for (size_t i = builder->n_lambdas - 1; i != -1; i--) {
         lambda_ptr_t lam = builder->lambdas[i];
         lambda_t *p_lam = get_abstraction(expr_manager, lam);
         get_variable(expr_manager, p_lam->var)->binding_index = i;
 
-        p_last_lambda->expr = create_abstraction_expression(context, expr_manager, lam);
-        p_last_lambda = p_lam;
+        p_lam->expr = body;
+        body = create_abstraction_expression(context, expr_manager, lam);
     }
-
-    p_last_lambda->expr = body;
 
 //    // We want to add the lambdas in reverse order because the linked list builds the lambdas backwards
 //
@@ -85,12 +85,17 @@ func_ptr_t compile_function(context_t *context, function_builder_t *builder, exp
 //    // Update any expression variables in the body (expr of last abstraction) to point to the new locations
 //    update_expression_vars(&func->lambdas[func->n_free_variables - 1].expr, func->lambdas);
 
-    // Create the functional expression
-    p_func->func_expr = create_function_expression(context, expr_manager, func);
-    // Create the entry point expression
-    p_func->entry_point = create_abstraction_expression(context, expr_manager, builder->lambdas[0]);
+    p_func->entry_point = builder->placeholder_entry;
+    set_expression_to_abstraction(context, expr_manager, p_func->entry_point, builder->lambdas[0]);
+    p_func->func_expr = builder->placeholder_func;
+    set_expression_to_function(context, expr_manager, p_func->func_expr, func);
 
     return func;
+}
+
+void builder_set_name(function_builder_t *builder, const char *name, size_t name_length) {
+    builder->name = name;
+    builder->name_length = name_length;
 }
 
 var_ptr_t get_function_variable(expr_manager_t *expr_manager, function_builder_t *builder,

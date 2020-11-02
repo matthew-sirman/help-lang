@@ -215,6 +215,7 @@ expr_ptr_t evaluate_expr(context_t *context, expr_manager_t *manager, expr_ptr_t
 
             // First we evaluate the argument in the current stack frame
             expr_ptr_t arg = evaluate_expr(context, manager, app_expr->e.app.a, call_stack);
+//            call_stack_ptr arg_stack_ptr = get_call_stack_ptr(call_stack);
 
             // Next we evaluate the function expression - it may not be a lambda yet, but it will have to be
             // before we can apply an argument to it. This will also allocate a new stack frame if needed
@@ -226,15 +227,18 @@ expr_ptr_t evaluate_expr(context_t *context, expr_manager_t *manager, expr_ptr_t
             }
             // Next, we bind the argument to the appropriate slot on the stack
 
-            size_t idx = get_variable(manager, get_abstraction(manager, get_expression(manager,
-                                                                                       function)->e.lam)->var)->binding_index; // function->e.lam->var.binding_index;
+            size_t idx = get_variable(manager, get_abstraction(manager, get_expression(manager, function)->e.lam)->var)->binding_index; // function->e.lam->var.binding_index;
             get_call_stack_ptr(call_stack)[idx] = arg;
+
+//            arg_stack_ptr[idx] = app_expr->e.app.a;
+
+            size_t frame = get_stack_frame(call_stack);
 
             // Then, we evaluate the reduced function expression, with the fact that the variable is now bound
             expr_ptr_t result = evaluate_expr(context, manager, function, call_stack);
 
             // After this, we can notify the stack allocator that we are done with this variable in the stack frame
-            call_stack_notify_pop(call_stack);
+            call_stack_notify_pop(call_stack, frame);
 
             // Finally, we return the result
             return result;

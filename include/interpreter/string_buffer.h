@@ -6,7 +6,8 @@
 #define HELP_LANG_STRING_BUFFER_H
 
 #include <stdlib.h>
-#include <stdbool.h>
+
+typedef unsigned char bool;
 
 typedef struct string_buffer string_buffer_t;
 

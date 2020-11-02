@@ -23,14 +23,27 @@ static void populate_numeric_binary_builtin(context_t *context, expr_manager_t *
                                             type_ptr_t number_type, builtin_function_t numeric_binary_op,
                                             const char *name, size_t name_length);
 
+static void populate_numeric_comparison_builtin(context_t *context, expr_manager_t *expr_manager,
+                                         type_ptr_t number_type, type_ptr_t bool_type,
+                                         builtin_function_t numeric_comparison_op,
+                                         const char *name, size_t name_length);
+
+static void populate_ifelse_builtin(context_t *context, expr_manager_t *expr_manager,
+                                    type_ptr_t poly_type, type_ptr_t bool_type);
+
 // Print functions
 
-void print_number_type(value_t *number_value);
+void print_number_type(value_t number_value);
+
+void print_bool_type(value_t bool_type);
 
 // Builtin functions
 
-static expr_ptr_t builtin_create_numeric_binary_op(expr_manager_t *manager, call_stack_t *call_stack,
-                                                   int *first, int *second, int **result);
+static expr_ptr_t builtin_numeric_binary_op(expr_manager_t *manager, call_stack_t *call_stack,
+                                            int *first, int *second, int **result);
+
+static expr_ptr_t builtin_numeric_comparison_op(expr_manager_t *manager, call_stack_t *call_stack,
+                                                int *first, int *second, bool **result);
 
 expr_ptr_t builtin_add(expr_manager_t *manager, call_stack_t *call_stack);
 
@@ -39,5 +52,11 @@ expr_ptr_t builtin_sub(expr_manager_t *manager, call_stack_t *call_stack);
 expr_ptr_t builtin_mul(expr_manager_t *manager, call_stack_t *call_stack);
 
 expr_ptr_t builtin_div(expr_manager_t *manager, call_stack_t *call_stack);
+
+expr_ptr_t builtin_mod(expr_manager_t *manager, call_stack_t *call_stack);
+
+expr_ptr_t builtin_gt(expr_manager_t *manager, call_stack_t *call_stack);
+
+expr_ptr_t builtin_ifelse(expr_manager_t *manager, call_stack_t *call_stack);
 
 #endif //FUNCTIONAL_BUILTIN_H

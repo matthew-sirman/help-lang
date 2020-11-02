@@ -116,6 +116,13 @@ void set_expression_to_abstraction(context_t *context, expr_manager_t *manager, 
     e->e.lam = lam;
 }
 
+void set_expression_to_function(context_t *context, expr_manager_t *manager, expr_ptr_t expr, func_ptr_t func) {
+    expr_t *e = get_expression(manager, expr);
+    e->mode = FUNCTION;
+    e->e.func = func;
+    e->type = get_expression(manager, get_function(context, func)->entry_point)->type;
+}
+
 void set_expression_to_application(context_t *context, expr_manager_t *manager, expr_ptr_t expr, expr_ptr_t func, expr_ptr_t arg) {
     expr_t *e = get_expression(manager, expr);
     e->mode = APPLICATION;

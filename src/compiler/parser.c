@@ -124,11 +124,14 @@ int parse_function(context_t *context, expr_manager_t *expr_manager, const char 
         return 1;
     }
 
+    size_t name_length = name_end - name_begin;
+
     // We know that the next character is a colon, so we can just skip over it without checking
     f_begin++;
 
     // Create a function builder
-    function_builder_t *f_builder = create_function_builder();
+    function_builder_t *f_builder = create_function_builder(expr_manager);
+    builder_set_name(f_builder, name_begin, name_length);
 
     // Get a reference to the polymorphic type
     type_ptr_t poly_type = get_type_ptr(context, "poly", 4);
@@ -208,7 +211,6 @@ int parse_function(context_t *context, expr_manager_t *expr_manager, const char 
 //        lambda_node = lambda_node->tail;
 //    }
 
-    size_t name_length = name_end - name_begin;
     compile_function(context, f_builder, expr_manager, body_expr, name_begin, name_length);
 
     // Cleanup and return success
@@ -303,24 +305,17 @@ expr_ptr_t parse_function_term(context_t *context, function_builder_t  *f_builde
 
     // First we want to check if it is a variable in the function arguments - variables shadow functions
     // from the outer scope
-//    lambda_list_t ll = f_builder->lambdas;
-//
-//    while (ll) {
-//        size_t lam_name_length = strlen(ll->lambda.var.name);
-//        // If the name matches a variable, create a variable expression and return
-//        if (name_length == lam_name_length && string_equal(ll->lambda.var.name, name_begin, name_length)) {
-//            return create_variable_expression(expr_manager, &ll->lambda.var);
-//        }
-//        ll = ll->tail;
-//    }
-
     var_ptr_t var = get_function_variable(expr_manager, f_builder, name_begin, name_length);
     if (var) {
         return create_variable_expression(expr_manager, var);
     }
 
-    // If this fell through, we next want to check the function list in the context builder
+    // Next we can check if the term was actually the name of the function itself
+    if (name_length == f_builder->name_length && string_equal(name_begin, f_builder->name, name_length)) {
+        return f_builder->placeholder_func;
+    }
 
+    // If this fell through, we next want to check the function list in the context builder
     func_ptr_t func = context_find_function(context, name_begin, name_length);
     if (func) {
         return get_function(context, func)->func_expr;

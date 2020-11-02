@@ -5,7 +5,6 @@
 #ifndef FUNCTIONAL_FUNC_H
 #define FUNCTIONAL_FUNC_H
 
-#include <stdbool.h>
 #include <stdlib.h>
 
 #include "type.h"
@@ -42,6 +41,10 @@ struct function_builder {
     lambda_ptr_t *lambdas;
     size_t n_lambdas;
     size_t capacity;
+
+    expr_ptr_t placeholder_entry, placeholder_func;
+    const char *name;
+    size_t name_length;
 };
 
 struct func {
@@ -59,12 +62,14 @@ struct func {
     expr_ptr_t entry_point;
 };
 
-function_builder_t *create_function_builder(void);
+function_builder_t *create_function_builder(expr_manager_t *manager);
 
 lambda_ptr_t builder_create_lambda(expr_manager_t *manager, function_builder_t *builder);
 
 func_ptr_t compile_function(context_t *context, function_builder_t *builder, expr_manager_t *expr_manager,
                             expr_ptr_t body, const char *function_name, size_t name_length);
+
+void builder_set_name(function_builder_t *builder, const char *name, size_t name_length);
 
 var_ptr_t get_function_variable(expr_manager_t *expr_manager, function_builder_t *builder,
                                 const char *name, size_t name_length);

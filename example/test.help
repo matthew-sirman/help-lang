@@ -22,3 +22,8 @@ func always_0:
 func const:
     x y -> x;
 
+func app:
+    x -> + x;
+
+func fact:
+    n -> (ifelse (> 0 n) (fact (- 1 n)) 1);
