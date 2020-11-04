@@ -3,6 +3,7 @@
 //
 
 #include <string.h>
+#include <assert.h>
 #include "../../include/util.h"
 #include "../../include/interpreter/string_buffer.h"
 #include "../../include/interpreter/interpreter.h"
@@ -180,7 +181,7 @@ parse_expression_term(context_t *context, expr_manager_t *expr_manager, const ch
 expr_ptr_t evaluate(context_t *context, expr_manager_t *manager, expr_ptr_t e) {
     call_stack_t *call_stack = create_call_stack();
 
-    expr_ptr_t evaluated = evaluate_expr(context, manager, e, call_stack);
+    expr_ptr_t evaluated = evaluate_expr(context, manager, e, call_stack, -1);
 
     if (call_stack->stack_ptr) {
         printf("Incomplete evaluation.\n");
@@ -191,19 +192,21 @@ expr_ptr_t evaluate(context_t *context, expr_manager_t *manager, expr_ptr_t e) {
     return evaluated;
 }
 
-expr_ptr_t evaluate_expr(context_t *context, expr_manager_t *manager, expr_ptr_t e, call_stack_t *call_stack) {
+expr_ptr_t evaluate_expr(context_t *context, expr_manager_t *manager, expr_ptr_t e,
+                         call_stack_t *call_stack, size_t offset) {
     // Propagate NULL values
     if (!e) {
         return NULL_PTR;
     }
     switch (get_expression(manager, e)->mode) {
         case VARIABLE: {
-            // If the variable is bound, evaluate the bound expression and return that.
-            // Otherwise, this expression cannot be reduced, so just return it.
+//            // If the variable is bound, evaluate the bound expression and return that.
+//            // Otherwise, this expression cannot be reduced, so just return it.
+            assert(offset != -1);
             size_t bind_idx = get_variable(manager, get_expression(manager, e)->e.var)->binding_index;
-            expr_ptr_t bound_expr = get_call_stack_ptr(call_stack)[bind_idx];
-            if (bound_expr) {
-                return evaluate_expr(context, manager, bound_expr, call_stack);
+            stack_node_t bound_expr = call_stack->stack_mem[offset + bind_idx];
+            if (bound_expr.expr) {
+                return evaluate_expr(context, manager, bound_expr.expr, call_stack, bound_expr.stack_offset);
             } else {
                 return e;
             }
@@ -213,13 +216,18 @@ expr_ptr_t evaluate_expr(context_t *context, expr_manager_t *manager, expr_ptr_t
 
             expr_t *app_expr = get_expression(manager, e);
 
-            // First we evaluate the argument in the current stack frame
-            expr_ptr_t arg = evaluate_expr(context, manager, app_expr->e.app.a, call_stack);
+//            // First we evaluate the argument in the current stack frame
+//            expr_ptr_t arg = evaluate_expr(context, manager, app_expr->e.app.a, call_stack);
 //            call_stack_ptr arg_stack_ptr = get_call_stack_ptr(call_stack);
+
+            // TODO: Get the active frame at this point. If there is no frame yet, set this to -1. Assert
+            //   before evaluating expressions with variables that the scope is not -1. If it is, there is an error.
+            //   Store the active frame along with the arg expression in the binding. Evaluate each variable in
+            //   its active frame.
 
             // Next we evaluate the function expression - it may not be a lambda yet, but it will have to be
             // before we can apply an argument to it. This will also allocate a new stack frame if needed
-            expr_ptr_t function = evaluate_expr(context, manager, app_expr->e.app.f, call_stack);
+            expr_ptr_t function = evaluate_expr(context, manager, app_expr->e.app.f, call_stack, offset);
             // Next, we need to check that it evaluated to a lambda expression
             if (get_expression(manager, function)->mode != ABSTRACTION) {
                 printf("Application failure: cannot apply function to a non-abstraction.\n");
@@ -228,14 +236,16 @@ expr_ptr_t evaluate_expr(context_t *context, expr_manager_t *manager, expr_ptr_t
             // Next, we bind the argument to the appropriate slot on the stack
 
             size_t idx = get_variable(manager, get_abstraction(manager, get_expression(manager, function)->e.lam)->var)->binding_index; // function->e.lam->var.binding_index;
-            get_call_stack_ptr(call_stack)[idx] = arg;
+//            get_call_stack_ptr(call_stack)[idx] = arg;
+
+            call_stack_emplace_expr(call_stack, idx, app_expr->e.app.a, offset);
 
 //            arg_stack_ptr[idx] = app_expr->e.app.a;
 
             size_t frame = get_stack_frame(call_stack);
 
             // Then, we evaluate the reduced function expression, with the fact that the variable is now bound
-            expr_ptr_t result = evaluate_expr(context, manager, function, call_stack);
+            expr_ptr_t result = evaluate_expr(context, manager, function, call_stack, get_call_stack_offset(call_stack));
 
             // After this, we can notify the stack allocator that we are done with this variable in the stack frame
             call_stack_notify_pop(call_stack, frame);
@@ -247,10 +257,10 @@ expr_ptr_t evaluate_expr(context_t *context, expr_manager_t *manager, expr_ptr_t
             lambda_t *lam = get_abstraction(manager, get_expression(manager, e)->e.lam);
 
             // First we check if the variable is bound or not.
-            expr_ptr_t bound_expr = get_call_stack_ptr(call_stack)[get_variable(manager, lam->var)->binding_index];
+            expr_ptr_t bound_expr = get_call_stack_ptr(call_stack)[get_variable(manager, lam->var)->binding_index].expr;
             if (bound_expr) {
                 // If we have an expression bound to the variable, we can evaluate the lambda's expression
-                return evaluate_expr(context, manager, lam->expr, call_stack);
+                return evaluate_expr(context, manager, lam->expr, call_stack, offset);
             }
             // If the variable is unbound, this abstraction cannot be further reduced
             return e;
@@ -266,7 +276,7 @@ expr_ptr_t evaluate_expr(context_t *context, expr_manager_t *manager, expr_ptr_t
         }
         case BUILTIN:
             // Call the builtin function, providing it with the expression manager and stack pointer
-            return get_expression(manager, e)->e.builtin(manager, call_stack);
+            return get_expression(manager, e)->e.builtin(context, manager, call_stack);
         case CONSTANT:
         default:
             // A constant cannot be further reduced, so return as is.

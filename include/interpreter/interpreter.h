@@ -28,7 +28,8 @@ static expr_ptr_t parse_expression_term(context_t *context, expr_manager_t *expr
 
 expr_ptr_t evaluate(context_t *context, expr_manager_t *manager, expr_ptr_t e);
 
-expr_ptr_t evaluate_expr(context_t *context, expr_manager_t *manager, expr_ptr_t e, call_stack_t *call_stack);
+expr_ptr_t evaluate_expr(context_t *context, expr_manager_t *manager, expr_ptr_t e,
+                         call_stack_t *call_stack, size_t offset);
 
 //expr_t *execute_function(func_t *func, )
 

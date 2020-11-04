@@ -13,7 +13,7 @@ typedef struct expr_manager expr_manager_t;
 typedef struct context context_t;
 typedef size_t expr_ptr_t;
 
-typedef expr_ptr_t (*builtin_function_t)(expr_manager_t *, call_stack_t *);
+typedef expr_ptr_t (*builtin_function_t)(context_t *context, expr_manager_t *, call_stack_t *);
 
 // Builtin population
 
@@ -39,24 +39,24 @@ void print_bool_type(value_t bool_type);
 
 // Builtin functions
 
-static expr_ptr_t builtin_numeric_binary_op(expr_manager_t *manager, call_stack_t *call_stack,
+static expr_ptr_t builtin_numeric_binary_op(context_t *context, expr_manager_t *manager, call_stack_t *call_stack,
                                             int *first, int *second, int **result);
 
-static expr_ptr_t builtin_numeric_comparison_op(expr_manager_t *manager, call_stack_t *call_stack,
+static expr_ptr_t builtin_numeric_comparison_op(context_t *context, expr_manager_t *manager, call_stack_t *call_stack,
                                                 int *first, int *second, bool **result);
 
-expr_ptr_t builtin_add(expr_manager_t *manager, call_stack_t *call_stack);
+expr_ptr_t builtin_add(context_t *context, expr_manager_t *manager, call_stack_t *call_stack);
 
-expr_ptr_t builtin_sub(expr_manager_t *manager, call_stack_t *call_stack);
+expr_ptr_t builtin_sub(context_t *context, expr_manager_t *manager, call_stack_t *call_stack);
 
-expr_ptr_t builtin_mul(expr_manager_t *manager, call_stack_t *call_stack);
+expr_ptr_t builtin_mul(context_t *context, expr_manager_t *manager, call_stack_t *call_stack);
 
-expr_ptr_t builtin_div(expr_manager_t *manager, call_stack_t *call_stack);
+expr_ptr_t builtin_div(context_t *context, expr_manager_t *manager, call_stack_t *call_stack);
 
-expr_ptr_t builtin_mod(expr_manager_t *manager, call_stack_t *call_stack);
+expr_ptr_t builtin_mod(context_t *context, expr_manager_t *manager, call_stack_t *call_stack);
 
-expr_ptr_t builtin_gt(expr_manager_t *manager, call_stack_t *call_stack);
+expr_ptr_t builtin_gt(context_t *context, expr_manager_t *manager, call_stack_t *call_stack);
 
-expr_ptr_t builtin_ifelse(expr_manager_t *manager, call_stack_t *call_stack);
+expr_ptr_t builtin_ifelse(context_t *context, expr_manager_t *manager, call_stack_t *call_stack);
 
 #endif //FUNCTIONAL_BUILTIN_H

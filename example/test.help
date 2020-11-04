@@ -26,4 +26,4 @@ func app:
     x -> + x;
 
 func fact:
-    n -> (ifelse (> 0 n) (fact (- 1 n)) 1);
+    n -> (ifelse (> 0 n) (* n (fact (- 1 n))) 1);

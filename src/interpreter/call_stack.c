@@ -13,7 +13,7 @@ call_stack_t *create_call_stack(void) {
     stack->capacity = 1;
     stack->top_offset = 0;
     // Allocate a pointer for the stack memory of size 1 and set the stack pointer to NULL
-    stack->stack_mem = (call_stack_ptr) malloc(sizeof(expr_ptr_t));
+    stack->stack_mem = (call_stack_ptr) malloc(sizeof(stack_node_t));
     stack->stack_ptr = NULL;
     // Setup working set structure
     stack->working_set_capacity = 1;
@@ -40,8 +40,9 @@ void call_stack_push_frame(call_stack_t *stack, size_t frame_size) {
         update_capacity(stack, new_stack_size);
     }
     // Set each pointer to NULL to initialise
-    for (expr_ptr_t *e = stack->stack_mem + stack->top_offset; e < stack->stack_mem + new_size; e++) {
-        *e = NULL_PTR;
+    for (stack_node_t *e = stack->stack_mem + stack->top_offset; e < stack->stack_mem + new_size; e++) {
+        e->expr = NULL_PTR;
+        e->stack_offset = 0;
     }
     // Set the stack pointer to the base of this frame
     stack->stack_ptr = stack->stack_mem + stack->top_offset;
@@ -57,6 +58,12 @@ void call_stack_push_frame(call_stack_t *stack, size_t frame_size) {
     stack->working_sets[stack->working_set_top].remaining = frame_size;
     // Increment the top offset
     stack->working_set_top++;
+}
+
+
+void call_stack_emplace_expr(call_stack_t *stack, size_t index, expr_ptr_t expr, size_t stack_offset) {
+    stack->stack_ptr[index].expr = expr;
+    stack->stack_ptr[index].stack_offset = stack_offset;
 }
 
 void call_stack_notify_pop(call_stack_t *stack, size_t frame) {
@@ -150,6 +157,13 @@ call_stack_ptr get_call_stack_ptr(call_stack_t *stack) {
     return stack->stack_ptr;
 }
 
+size_t get_call_stack_offset(call_stack_t *stack) {
+    if (!stack->stack_ptr) {
+        return -1;
+    }
+    return stack->stack_ptr - stack->stack_mem;
+}
+
 size_t get_stack_frame_size(call_stack_t *stack) {
     if (!stack->stack_ptr) {
         fprintf(stderr, "Attempted to retrieve stack frame size for empty stack.\n");
@@ -171,7 +185,7 @@ void free_call_stack(call_stack_t *stack) {
 void update_capacity(call_stack_t *stack, size_t new_capacity) {
     size_t stack_ptr_offset = stack->stack_ptr - stack->stack_mem;
     stack->capacity = new_capacity;
-    stack->stack_mem = (call_stack_ptr) realloc((void *) stack->stack_mem, sizeof(expr_ptr_t) * new_capacity);
+    stack->stack_mem = (call_stack_ptr) realloc((void *) stack->stack_mem, sizeof(stack_node_t) * new_capacity);
     if (stack->stack_ptr) {
         stack->stack_ptr = stack->stack_mem + stack_ptr_offset;
     }

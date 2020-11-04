@@ -11,8 +11,14 @@
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
 typedef struct call_stack call_stack_t;
-typedef expr_ptr_t *call_stack_ptr;
+typedef struct stack_node stack_node_t;
+typedef stack_node_t *call_stack_ptr;
 typedef struct { size_t size, remaining; } working_set_t;
+
+struct stack_node {
+    expr_ptr_t expr;
+    size_t stack_offset;
+};
 
 struct call_stack {
     call_stack_ptr stack_mem;
@@ -30,12 +36,18 @@ call_stack_t *create_call_stack(void);
 // Push frame_size empty items onto the stack, i.e. to allocate memory for function variables
 void call_stack_push_frame(call_stack_t *stack, size_t frame_size);
 
+// Emplace an item on the stack
+void call_stack_emplace_expr(call_stack_t *stack, size_t index, expr_ptr_t expr, size_t stack_offset);
+
 // Notify that a free variable in the current stack frame has completed. When all have completed,
 // the stack frame can be freed
 void call_stack_notify_pop(call_stack_t *stack, size_t frame);
 
 // Get the call stack pointer
 call_stack_ptr get_call_stack_ptr(call_stack_t *stack);
+
+// Get the offset of the current stack pointer
+size_t get_call_stack_offset(call_stack_t *stack);
 
 // Get the size of the active stack frame
 size_t get_stack_frame_size(call_stack_t *stack);
