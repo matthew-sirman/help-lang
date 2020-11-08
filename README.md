@@ -2,5 +2,4 @@
 <b>Highly Esoteric Language for Programming</b>
 
 A simple (incomplete) functional programming language.
-Compiler (incomplete) written in C, alongside interpreter for executing
-compiled code.
+The parser and interpreter are written written in C.
